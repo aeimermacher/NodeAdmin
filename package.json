@@ -1,0 +1,20 @@
+{
+  "name": "nodeadmin",
+  "version": "1.0.0",
+  "description": "Web UI to manage Node.js programs as systemd user services",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "hash-password": "node scripts/hash-password.js",
+    "test-mail": "node --env-file-if-exists=.env scripts/test-mail.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "markdown-it": "^15.0.2",
+    "nodemailer": "^10.0.10"
+  }
+}

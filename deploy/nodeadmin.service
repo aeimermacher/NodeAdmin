@@ -1,0 +1,12 @@
+[Unit]
+Description=NodeAdmin web UI
+After=network.target
+
+[Service]
+WorkingDirectory=%h/nodeadmin
+EnvironmentFile=%h/nodeadmin/.env
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

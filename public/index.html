@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NodeAdmin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section id="login-view" hidden>
+    <form id="login-form" class="card login">
+      <h1>NodeAdmin</h1>
+      <label>Password <input type="password" name="password" autocomplete="current-password" required autofocus></label>
+      <button type="submit" class="primary">Log in</button>
+    </form>
+  </section>
+
+  <section id="app-view" hidden>
+    <header>
+      <h1>NodeAdmin</h1>
+      <div>
+        <button id="add-btn" class="primary">Add service</button>
+        <button id="import-btn">Import existing</button>
+        <button id="logout-btn">Log out</button>
+      </div>
+    </header>
+    <main>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Status</th><th>PID</th><th>Since</th><th>Autostart</th><th>Command</th><th></th></tr>
+        </thead>
+        <tbody id="services"></tbody>
+      </table>
+      <p id="empty" class="muted" hidden>No services yet. Click "Add service" to register one.</p>
+    </main>
+  </section>
+
+  <dialog id="add-dialog">
+    <form id="add-form" method="dialog">
+      <h2>Add service</h2>
+      <label>Name <input name="name" required pattern="[a-z0-9][a-z0-9\-]{0,62}" placeholder="my-api"></label>
+      <label>Description <input name="description" placeholder="My API server"></label>
+      <label>Working directory <input name="workingDirectory" required placeholder="/home/app/my-api"></label>
+      <label>Script <input name="script" required placeholder="server.js"></label>
+      <label>Arguments <input name="args" placeholder="--port 8080"></label>
+      <label>Environment (KEY=value per line) <textarea name="env" rows="4" placeholder="NODE_ENV=production&#10;PORT=8080"></textarea></label>
+      <label class="inline"><input type="checkbox" name="autostart" checked> Start on boot</label>
+      <label class="inline"><input type="checkbox" name="start" checked> Start now</label>
+      <div class="actions">
+        <button type="button" id="add-cancel">Cancel</button>
+        <button type="submit" class="primary">Create</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="import-dialog">
+    <form id="import-form" method="dialog">
+      <h2>Import existing service</h2>
+      <label>Scope
+        <select name="scope">
+          <option value="system">System (/etc/systemd/system)</option>
+          <option value="user">User (systemctl --user)</option>
+        </select>
+      </label>
+      <label>Unit <input name="unit" list="unit-options" required placeholder="my-api.service" autocomplete="off"></label>
+      <datalist id="unit-options"></datalist>
+      <label>Name in panel (optional) <input name="name" pattern="[a-z0-9][a-z0-9\-]{0,62}" placeholder="derived from unit"></label>
+      <div class="actions">
+        <button type="button" id="import-cancel">Cancel</button>
+        <button type="submit" class="primary">Import</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="readme-dialog" class="wide">
+    <h2 id="readme-title"></h2>
+    <p id="readme-file" class="muted mono"></p>
+    <div id="readme" class="markdown"></div>
+    <div class="actions">
+      <button type="button" id="readme-close">Close</button>
+    </div>
+  </dialog>
+
+  <dialog id="logs-dialog" class="wide">
+    <h2 id="logs-title"></h2>
+    <pre id="logs"></pre>
+    <div class="actions">
+      <button type="button" id="logs-refresh">Refresh</button>
+      <button type="button" id="logs-close">Close</button>
+    </div>
+  </dialog>
+
+  <div id="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
