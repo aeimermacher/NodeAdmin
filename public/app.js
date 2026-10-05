@@ -1,6 +1,8 @@
 const $ = (sel) => document.querySelector(sel);
 let refreshTimer = null;
 let logsFor = null;
+let editingService = null;
+const pendingActions = new Map();
 
 async function api(method, url, body) {
   const headers = { 'X-Requested-With': 'NodeAdmin' };
@@ -54,13 +56,23 @@ function stateClass(state) {
 }
 
 async function doAction(name, action) {
+  if (pendingActions.has(name)) return;
+  if (action === 'update' && !confirm(`Pull the upstream GitHub branch and restart "${name}"?`)) return;
+  pendingActions.set(name, action);
+  refresh();
   try {
-    await api('POST', `/api/services/${encodeURIComponent(name)}/${action}`, {});
-    toast(`${name}: ${action} OK`, false);
+    const status = await api('POST', `/api/services/${encodeURIComponent(name)}/${action}`, {});
+    if (action === 'update' && status.activeState !== 'active') {
+      toast(`${name}: source updated and restart requested; service is ${status.activeState}. Check logs.`);
+    } else {
+      toast(`${name}: ${action === 'update' ? 'pulled and restarted' : `${action} OK`}`, false);
+    }
   } catch (err) {
     toast(`${name}: ${err.message}`);
+  } finally {
+    pendingActions.delete(name);
+    refresh();
   }
-  refresh();
 }
 
 async function removeService(svc) {
@@ -81,8 +93,9 @@ async function removeService(svc) {
 function renderRow(svc) {
   const st = svc.status || {};
   const active = st.activeState === 'active';
+  const pending = pendingActions.get(svc.name);
   const btn = (label, onclick, disabled = false, className = '') =>
-    el('button', { textContent: label, onclick, disabled, className });
+    el('button', { textContent: label, onclick, disabled: disabled || Boolean(pending), className });
 
   return el(
     'tr',
@@ -106,8 +119,9 @@ function renderRow(svc) {
         : '',
     ),
     el('td', {}, el('span', {
-      className: `badge ${stateClass(st.activeState)}`,
-      textContent: st.subState ? `${st.activeState} (${st.subState})` : st.activeState,
+      className: `badge ${pending ? 'warn' : stateClass(st.activeState)}`,
+      textContent: pending ? (pending === 'update' ? 'Pulling & restarting...' : `${pending}...`)
+        : st.subState ? `${st.activeState} (${st.subState})` : st.activeState,
       title: st.error || '',
     })),
     el('td', { textContent: st.pid ?? '' }),
@@ -124,6 +138,8 @@ function renderRow(svc) {
       btn('Start', () => doAction(svc.name, 'start'), active),
       btn('Stop', () => doAction(svc.name, 'stop'), !active),
       btn('Restart', () => doAction(svc.name, 'restart')),
+      btn('Pull & restart', () => doAction(svc.name, 'update'), !svc.workingDirectory),
+      btn('Edit', () => openEdit(svc.name), !svc.workingDirectory),
       btn('Logs', () => openLogs(svc.name)),
       btn(svc.managed ? 'Remove' : 'Unregister', () => removeService(svc), false, 'danger'),
     ),
@@ -176,6 +192,69 @@ async function openReadme(name) {
     $('#readme').textContent = err.message;
   }
 }
+
+async function openEdit(name) {
+  const editing = { name };
+  editingService = editing;
+  const form = $('#edit-form');
+  form.reset();
+  $('#edit-title').textContent = `Edit service: ${name}`;
+  $('#edit-remote').textContent = 'Loading repository...';
+  $('#edit-error').hidden = true;
+  form.repository.disabled = true;
+  $('#edit-save').disabled = true;
+  $('#edit-dialog').showModal();
+  try {
+    const data = await api('GET', `/api/services/${encodeURIComponent(name)}/repository`);
+    if (editingService !== editing) return;
+    form.repository.value = data.repository;
+    $('#edit-remote').textContent = `Remote: ${data.remote}`;
+  } catch (err) {
+    if (editingService !== editing) return;
+    $('#edit-remote').textContent = '';
+    $('#edit-error').textContent = err.message;
+    $('#edit-error').hidden = false;
+  } finally {
+    if (editingService === editing) {
+      form.repository.disabled = false;
+      $('#edit-save').disabled = false;
+      form.repository.focus();
+    }
+  }
+}
+
+$('#edit-cancel').addEventListener('click', () => $('#edit-dialog').close());
+$('#edit-dialog').addEventListener('close', () => { editingService = null; });
+$('#edit-dialog').addEventListener('cancel', (event) => {
+  if (editingService && pendingActions.has(editingService.name)) event.preventDefault();
+});
+$('#edit-form').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const editing = editingService;
+  if (!editing || pendingActions.has(editing.name)) return;
+  const form = event.target;
+  const repository = form.repository.value.trim();
+  pendingActions.set(editing.name, 'edit');
+  form.repository.disabled = true;
+  $('#edit-save').disabled = true;
+  $('#edit-cancel').disabled = true;
+  $('#edit-error').hidden = true;
+  refresh();
+  try {
+    await api('PATCH', `/api/services/${encodeURIComponent(editing.name)}`, { repository });
+    $('#edit-dialog').close();
+    toast(`${editing.name}: repository saved`, false);
+  } catch (err) {
+    $('#edit-error').textContent = err.message;
+    $('#edit-error').hidden = false;
+  } finally {
+    pendingActions.delete(editing.name);
+    form.repository.disabled = false;
+    $('#edit-save').disabled = false;
+    $('#edit-cancel').disabled = false;
+    refresh();
+  }
+});
 
 function parseEnv(text) {
   const env = {};

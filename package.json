@@ -9,6 +9,7 @@
   },
   "scripts": {
     "start": "node --env-file-if-exists=.env src/server.js",
+    "test": "node --test test/*.test.js",
     "hash-password": "node scripts/hash-password.js",
     "test-mail": "node --env-file-if-exists=.env scripts/test-mail.js"
   },

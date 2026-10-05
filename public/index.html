@@ -72,6 +72,19 @@
     </form>
   </dialog>
 
+  <dialog id="edit-dialog">
+    <form id="edit-form">
+      <h2 id="edit-title">Edit service</h2>
+      <p id="edit-remote" class="muted"></p>
+      <label>GitHub repository <input name="repository" required placeholder="https://github.com/owner/repo.git" autocomplete="off" spellcheck="false"></label>
+      <p id="edit-error" class="form-error" role="alert" hidden></p>
+      <div class="actions">
+        <button type="button" id="edit-cancel">Cancel</button>
+        <button type="submit" id="edit-save" class="primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="readme-dialog" class="wide">
     <h2 id="readme-title"></h2>
     <p id="readme-file" class="muted mono"></p>

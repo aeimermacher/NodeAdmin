@@ -10,7 +10,7 @@ Logs are read from the journal.
 Run NodeAdmin as the Linux user that owns your Node.js apps (managed services run as that user).
 
 ```bash
-sudo apt install nodejs npm
+sudo apt install nodejs npm git
 # Keep this user's services running without an active login session, and start them on boot
 sudo loginctl enable-linger "$USER"
 sudo systemctl start "user@$(id -u).service"
@@ -48,6 +48,56 @@ Do not expose it over plain HTTP on a public interface: it can run arbitrary pro
 - **Script**: entry file relative to it, e.g. `server.js` (or `dist/index.js`)
 - **Arguments**: space-separated
 - **Environment**: `KEY=value` per line
+
+## Pulling updates from GitHub
+
+Use **Pull & restart** on a service to fetch its current branch's configured upstream,
+fast-forward the existing checkout, then restart its systemd unit. This works for managed
+and imported services with a working directory. The NodeAdmin Linux user needs write access
+to the checkout and permission to restart the unit. Clone the repository on the server first;
+this action does not clone repositories or switch branches.
+
+Use **Edit** on an existing service to view or change its GitHub repository URL.
+Saving updates the current branch's configured remote in the checkout's Git configuration.
+If HEAD is detached or the branch has no remote, the editor uses `origin`, or the only
+configured remote when `origin` is absent. Ambiguous remote choices are rejected.
+Editing does not switch branches, pull code or restart the service. It also affects other services using that
+same checkout. Both HTTPS and SSH URLs are supported; do not include tokens in the URL.
+Use **Pull & restart** separately to deploy from the new remote; this still requires an
+attached branch with a configured upstream. The branch name stays
+unchanged and the new repository must have compatible history for a fast-forward update;
+switching to an unrelated repository requires a separately prepared checkout.
+
+Configure the checkout's upstream once, for example:
+
+```bash
+cd /home/app/my-api
+git remote set-url origin https://github.com/OWNER/REPO.git
+git branch --set-upstream-to=origin/main main
+```
+
+- **Public repos**: GitHub HTTPS URLs work without credentials.
+- **Private repos via HTTPS**: set `GITHUB_TOKEN` in NodeAdmin's `.env`, then restart
+  NodeAdmin. Use a fine-grained GitHub token restricted to the required repositories with
+  **Contents: Read-only** permission (and organization approval where required). The token
+  is passed only to the fetch process and its credential helper, not stored in service
+  definitions, Git remotes or command arguments. Keep `.env` mode `600` and serve the panel
+  over HTTPS or an SSH tunnel. Existing Git credential helpers also work when no token is set.
+- **Private repos via SSH**: use `git@github.com:OWNER/REPO.git` or
+  `ssh://git@github.com/OWNER/REPO.git` and configure a read-only GitHub deploy key for the
+  NodeAdmin Linux user. Verify GitHub's host key and configure `known_hosts` beforehand.
+  Keys must work non-interactively, including inside NodeAdmin's systemd environment;
+  passphrase-protected keys require an available SSH agent. SSH authentication never uses
+  `GITHUB_TOKEN`.
+
+Local changes (including untracked files), detached HEAD, missing upstreams, local commits
+ahead of upstream, and divergent history block the update. Ignored files such as `.env`
+are left untouched. Fetch/fast-forward failures do not trigger a restart. Updates and other
+service mutations are serialized. Each Git command has a two-minute timeout.
+
+This updates source only: dependency installation, migrations and build steps are not run.
+Prepare those separately when required. A restart failure leaves the new source in place;
+there is no automatic rollback. Check service logs after deployment.
 
 ## Mail alerts
 

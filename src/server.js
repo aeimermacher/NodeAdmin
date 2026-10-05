@@ -86,6 +86,14 @@ app.delete('/api/services/:name', async (req, res) => {
   res.status(204).end();
 });
 
+app.get('/api/services/:name/repository', async (req, res) => {
+  res.json(await services.repository(req.params.name));
+});
+
+app.patch('/api/services/:name', async (req, res) => {
+  res.json(await services.changeRepository(req.params.name, req.body ?? {}));
+});
+
 app.post('/api/services/:name/:action', async (req, res) => {
   res.json(await services.action(req.params.name, req.params.action));
 });

@@ -47,11 +47,12 @@ th { font-size: 0.8rem; text-transform: uppercase; color: var(--muted); }
 .row-actions { white-space: nowrap; }
 .row-actions button { margin-right: 0.25rem; }
 .muted { color: var(--muted); font-size: 0.85rem; }
+.form-error { color: var(--bad); overflow-wrap: anywhere; }
 .readme-link { font-size: 0.85rem; color: var(--primary); }
 .tag { margin-left: 0.4rem; padding: 0.05rem 0.4rem; border: 1px solid var(--border); border-radius: 4px; font-size: 0.75rem; color: var(--muted); }
 .mono { font-family: ui-monospace, monospace; font-size: 0.85rem; }
 
-.badge { padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.8rem; color: #fff; background: var(--muted); }
+.badge { display: inline-block; white-space: nowrap; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.8rem; color: #fff; background: var(--muted); }
 .badge.ok { background: var(--ok); }
 .badge.bad { background: var(--bad); }
 .badge.warn { background: var(--warn); }
@@ -62,6 +63,7 @@ th { font-size: 0.8rem; text-transform: uppercase; color: var(--muted); }
 label { display: grid; gap: 0.25rem; font-size: 0.9rem; margin-bottom: 0.75rem; }
 label.inline { display: flex; align-items: center; gap: 0.5rem; }
 input:not([type=checkbox]), textarea, select { font: inherit; padding: 0.4rem; border: 1px solid var(--border); border-radius: 6px; }
+#edit-form input { min-width: 0; width: 100%; box-sizing: border-box; }
 textarea { font-family: ui-monospace, monospace; }
 
 dialog { border: 1px solid var(--border); border-radius: 10px; width: min(520px, 90vw); }

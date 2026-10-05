@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import MarkdownIt from 'markdown-it';
+import { pullCheckout, readRepository, setRepository } from './git.js';
 
 const run = promisify(execFile);
 
@@ -15,7 +16,7 @@ const NODE_BIN = process.env.NODE_BIN || process.execPath;
 const NAME_RE = /^[a-z0-9][a-z0-9-]{0,62}$/;
 const ENV_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const UNIT_RE = /^[A-Za-z0-9][A-Za-z0-9:_.@-]*\.service$/;
-const ACTIONS = new Set(['start', 'stop', 'restart', 'enable', 'disable']);
+const ACTIONS = new Set(['start', 'stop', 'restart', 'enable', 'disable', 'update']);
 
 // systemctl --user needs the user's runtime dir to reach the user manager.
 const childEnv = {
@@ -295,11 +296,26 @@ export function remove(name) {
   });
 }
 
-export async function action(name, act) {
-  if (!ACTIONS.has(act)) throw new HttpError(400, 'Unknown action');
+export function action(name, act) {
+  return exclusive(async () => {
+    if (!ACTIONS.has(act)) throw new HttpError(400, 'Unknown action');
+    const svc = await findOrThrow(name);
+    if (act === 'update') await pullCheckout(svc.workingDirectory);
+    await systemctl(svc.scope, act === 'update' ? 'restart' : act, svc.unit);
+    return status(svc);
+  });
+}
+
+export async function repository(name) {
   const svc = await findOrThrow(name);
-  await systemctl(svc.scope, act, svc.unit);
-  return status(svc);
+  return readRepository(svc.workingDirectory);
+}
+
+export function changeRepository(name, input) {
+  return exclusive(async () => {
+    const svc = await findOrThrow(name);
+    return setRepository(svc.workingDirectory, input.repository);
+  });
 }
 
 export async function logs(name, lines = 200) {
